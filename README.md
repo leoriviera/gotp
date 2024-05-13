@@ -10,3 +10,8 @@ This project supports
 - different lengths for the one-time password, 6 and 8 digits
 
 This project has no dependencies, only using functions included in Go's standard library. It also has tests, based on the test cases from both RFCs.
+
+## TODO
+
+- Trigger tests on GitHub Actions
+- Support 30 second and 60 second periods for TOTP
