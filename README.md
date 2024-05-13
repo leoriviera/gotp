@@ -8,10 +8,10 @@ This project supports
 
 - different hashing algorithms for HMAC, namely SHA1, SHA256, and SHA512
 - different lengths for the one-time password, 6 and 8 digits
+- 30 second and 60 second periods for TOTP
 
 This project has no dependencies, only using functions included in Go's standard library. It also has tests, based on the test cases from both RFCs.
 
-## TODO
+## TODO
 
 - Trigger tests on GitHub Actions
-- Support 30 second and 60 second periods for TOTP
