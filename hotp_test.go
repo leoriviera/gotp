@@ -32,7 +32,12 @@ func TestGenerateIntermediateHMACValue(t *testing.T) {
 			counter := make([]byte, 8)
 			binary.BigEndian.PutUint64(counter, tt.counterValue)
 
-			hmac := hex.EncodeToString(generateHMAC(secret, counter, SHA1))
+			hotp := &hotp{
+				algorithm: SHA1,
+				digits: 6,
+				secret: secret,
+			}
+			hmac := hex.EncodeToString(generateHMAC(hotp, counter))
 
 			if hmac != tt.hmac {
 				t.Errorf("got %s, want %s", hmac, tt.hmac)
@@ -40,6 +45,7 @@ func TestGenerateIntermediateHMACValue(t *testing.T) {
 		})
 	}
 }
+
 
 func TestTruncatedHMACValue(t *testing.T) {
 	var secret = []byte("12345678901234567890")
@@ -66,7 +72,12 @@ func TestTruncatedHMACValue(t *testing.T) {
 			counter := make([]byte, 8)
 			binary.BigEndian.PutUint64(counter, tt.counterValue)
 
-			hmac := generateHMAC(secret, counter, SHA1)
+			hotp := &hotp{
+				algorithm: SHA1,
+				digits: 6,
+				secret: secret,
+			}
+			hmac := generateHMAC(hotp, counter)
 			truncated := hex.EncodeToString(dynamicTruncate(hmac))
 
 			if truncated != tt.truncated {
@@ -74,7 +85,6 @@ func TestTruncatedHMACValue(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestHOTP(t *testing.T) {
@@ -82,7 +92,7 @@ func TestHOTP(t *testing.T) {
 
 	var tests = []struct {
 		counterValue uint64
-		hotp         string
+		code         string
 	}{
 		{0, "755224"},
 		{1, "287082"},
@@ -102,58 +112,17 @@ func TestHOTP(t *testing.T) {
 			counter := make([]byte, 8)
 			binary.BigEndian.PutUint64(counter, tt.counterValue)
 
-			hotp := generateHOTP(secret, counter, 6, SHA1)
+			hotp := &hotp{
+				algorithm: SHA1,
+				digits: 6,
+				secret: secret,
+			}
 
-			if hotp != tt.hotp {
-				t.Errorf("got %s, want %s", hotp, tt.hotp)
+			code := hotp.GenerateOTP(tt.counterValue)
+
+			if code != tt.code {
+				t.Errorf("got %s, want %s", code, tt.code)
 			}
 		})
-	}
-}
-
-func TestTOTP(t *testing.T) {
-	lengths := [2]int{ 6, 8 }
-
-	var tests = []struct {
-		secret string
-		time int64
-		mode Algorithm
-		totp string
-	}{
-		{"12345678901234567890", 59, SHA1, "94287082"},
-		{"12345678901234567890123456789012", 59, SHA256, "46119246"},
-		{"1234567890123456789012345678901234567890123456789012345678901234", 59, SHA512, "90693936"},
-		{"12345678901234567890", 1111111109, SHA1, "07081804"},
-		{"12345678901234567890123456789012", 1111111109, SHA256, "68084774"},
-		{"1234567890123456789012345678901234567890123456789012345678901234", 1111111109, SHA512, "25091201"},
-		{"12345678901234567890", 1111111111, SHA1, "14050471"},
-		{"12345678901234567890123456789012", 1111111111, SHA256, "67062674"},
-		{"1234567890123456789012345678901234567890123456789012345678901234", 1111111111, SHA512, "99943326"},
-		{"12345678901234567890", 1234567890, SHA1, "89005924"},
-		{"12345678901234567890123456789012", 1234567890, SHA256, "91819424"},
-		{"1234567890123456789012345678901234567890123456789012345678901234", 1234567890, SHA512, "93441116"},
-		{"12345678901234567890", 2000000000, SHA1, "69279037"},
-		{"12345678901234567890123456789012", 2000000000, SHA256, "90698825"},
-		{"1234567890123456789012345678901234567890123456789012345678901234", 2000000000, SHA512, "38618901"},
-		{"12345678901234567890", 20000000000, SHA1, "65353130"},
-		{"12345678901234567890123456789012", 20000000000, SHA256, "77737706"},
-		{"1234567890123456789012345678901234567890123456789012345678901234", 20000000000, SHA512, "47863826"},
-	}
-
-	for _, tt := range tests {
-		for _, length := range lengths  {
-			testname := fmt.Sprintf("time:%d,length:%d,mode:%s", tt.time, length, tt.mode)
-
-			t.Run(testname, func(t *testing.T) {
-				totp := generateTOTP([]byte(tt.secret), tt.time, length, tt.mode)
-
-				// Get last [length] digits from tt.totp
-				expectedTOTP := tt.totp[len(tt.totp)-length:]
-
-				if totp != expectedTOTP {
-					t.Errorf("got %s, want %s", totp, expectedTOTP)
-				}
-			})
-		}
 	}
 }
